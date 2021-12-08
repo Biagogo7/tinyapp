@@ -3,7 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
 
-const shortUrl = function generateRandomString() {
+function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
 }
 
@@ -38,6 +38,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
   res.render("urls_show", templateVars);
+  
 });
 
 app.get("/hello", (req, res) => {
@@ -46,10 +47,17 @@ app.get("/hello", (req, res) => {
 
 app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
-     
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  const shortUrl = generateRandomString();
+  urlDatabase[shortUrl] = req.body.longURL;  
+  //res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  res.redirect(`/urls/${shortUrl}`);
 });
 
+app.get("/u/:shortURL", (req, res) => {
+  // const longURL = ...
+  longURL = urlDatabase[req.params.shortURL]
+  res.redirect(longURL);
+});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
