@@ -20,6 +20,25 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+
+const users = { 
+  "ab12cd": {
+    id: "u1", 
+    email: "u1@abc.com", 
+    password: "p1"
+  },
+ "ab34cd": {
+    id: "u2", 
+    email: "u2@abc.com", 
+    password: "p2"
+  }
+};
+
+
+
+
+
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -34,7 +53,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = {username: req.cookies["username"]};
+  const templateVars = {username: req.cookies["username"]};   //note
   res.render("urls_new", templateVars);
 });
 
@@ -83,16 +102,43 @@ app.get("/u/:shortURL", (req, res) => {
 
 app.get("/login", (req, res) => {
  console.log('username: === ', req.body.username) 
- res.render("urls_new");
+ const templateVars = {username: req.cookies["username"]};
+ //res.render("urls_show", templateVars);
+ res.render("urls_new", {username: null});
 });
 
 
 app.post("/login", (req, res) => {
   const nameValue = req.body.username;
-  res.cookie('username', nameValue)
+  res.cookie('username', nameValue);
   
   res.redirect("/urls");
 });
+
+//register
+app.post("/register", (req, res) => {
+  // const nameValue = req.body.username;
+  // res.cookie('username', nameValue)
+  let user = generateRandomString();
+  console.log("user3 ===== ", user );
+  console.log("useremail ===== ", req.body.email );
+  console.log("userpw ===== ", req.body.password );
+  console.log(users);
+
+  users[user]['id'] = user;
+  users[user]["email"] = req.body.email;
+  users[user]["password"] = req.body.password;
+  res.cookie(user);
+  
+  res.redirect("/urls");
+});
+
+app.get("/register", (req, res) => {
+  console.log('name: === ', req.body.name) 
+  console.log('email: === ', req.body.email)
+  res.render("register");
+});
+
 
 app.post("/logout", (req, res) => {
   //const nameValue = req.body.username;
