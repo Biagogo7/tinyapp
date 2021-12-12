@@ -13,15 +13,27 @@ app.use(cookieParser())
 
 app.set("view engine", "ejs");
 
+let id = generateRandomString();
+const shortUrl = generateRandomString();
 
 
 
-
+// const urlDatabase = {                            xx
+//   "b2xVn2": "http://www.lighthouselabs.ca",
+//   "9sm5xK": "http://www.google.com"
+// };
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
+  }
 };
+
 
 
 const users = { 
@@ -38,6 +50,21 @@ const users = {
 };
 
 
+function urlsForUser(id) {
+  let userUrls = {};
+  for (const shortURL in urlDatabase) {
+    if (id === urlDatabase[shortURL].userID) {
+      userUrls[shortURL] = urlDatabase[shortURL];
+    }
+       
+  };
+  return userUrls;
+};
+
+
+
+
+
 const emailValidator = (emailToCheck) => {   
   for (let user in users) {
     if (users[user].email === emailToCheck) {
@@ -48,7 +75,6 @@ const emailValidator = (emailToCheck) => {
   //return false;
 };
 
-let id = generateRandomString();
 
 
 
@@ -63,65 +89,151 @@ app.get("/urls.json", (req, res) => {
 app.get("/urls", (req, res) => {
   const id = req.cookies.user_id;
   const user = users[id];
+  //let longURL = req.body.longURL;
+  
+  let longurls = {};
+  for (const shortURL in urlDatabase) {
+    const longURL = urlDatabase[shortURL].longURL;
+    longurls[shortURL] = longURL;    
+  };
 
-  const templateVars = { urls: urlDatabase, user};
-  //console.log('templateVars',  templateVars);
+  console.log('longurls_____ ', longurls);
+  const userUrls = urlsForUser(id);
+  //const templateVars = { shortURL: urlD, user};
+ // const templateVars = { urls: longurls, user};
+  const templateVars = { urls: userUrls, user};
+
   
   res.render("urls_index", templateVars);
+
 });
 
 app.get("/urls/new", (req, res) => {
+  const longURL = req.body.longURL;
   const id = req.cookies.user_id;
   const user = users[id];
   const templateVars = {user}; 
 
-  
-  res.render("urls_new", templateVars);
+
+  if (id) {
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect(`/login`);
+  }
+    
 });
+
 
 app.get("/urls/:shortURL", (req, res) => {
   const id = req.cookies.user_id;
   const user = users[id];
   //const templateVars = {user}; 
 
-  const longURL = urlDatabase[req.params.shortURL]
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user};
+
+  const shortUrl = req.params.shortURL;
+  const longURL = urlDatabase[shortUrl].longURL
+
+  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[shortUrl].longURL, user};
+
+  //const longURL = urlDatabase[req.params.shortURL]
+  //const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user};
   
   res.render("urls_show", templateVars);
   
 });
 
+
+
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+
+
 app.post("/urls", (req, res) => {
   //console.log(req.body);  // Log the POST request body to the console
-  const shortUrl = generateRandomString();
-  urlDatabase[shortUrl] = req.body.longURL;  
+  //user_id = id;
+  //let userID = id;
+  const userID = req.cookies.user_id;
+  const longURL = req.body.longURL;
+  const shortUrl = generateRandomString();    
+  //urlDatabase[shortUrl] = req.body.longURL;    xx
+
+  //urls display no url unless user logs in
+  if (!id) {
+    res.status(403).send({ error : 'status(403): You need to Log in or Register!'});
+  };
+
+
+  if (!userID) {
+    res.redirect(`/login`);
+  }
+  
+  let newUrlObj = { longURL, userID };
+  urlDatabase[shortUrl] = newUrlObj;   
+
+  console.log("urldbs********", urlDatabase)  
+
   //res.send("Ok"); // Respond with 'Ok' (we will replace this)
   res.redirect(`/urls/${shortUrl}`);
 });
 
+
 app.post("/urls/:shortURL", (req, res) => {
-  const shortURL = req.params.shortURL;
-  urlDatabase[shortURL] = req.body.longURL;  
+
+  const shortURL = req.params.shortURL;              
+
+  //const shortURL = req.params.shortURL;
+  let shortUrl = req.params.shortURL;
+  const userID = req.cookies.user_id;
+  const longURL = req.body.longURL;                
+  //const longURL = urlDatabase[shortUrl].longURL
+  let newUrlObj = { longURL, userID };
+
+  if (urlDatabase[shortUrl].userID === userID) {
+    
+    urlDatabase[shortUrl] = newUrlObj;  
+    res.redirect(`/urls`);
+  } else {
+    res.status(403).send({ error : 'status(403): You do not have permission to edit!'});
+  }
+  
+  
+  
   //res.send("Ok"); // Respond with 'Ok' (we will replace this)
-  res.redirect(`/urls/${shortURL}`);
+ 
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortUrl = req.params.shortURL;
-  delete urlDatabase[shortUrl];  
+  const userID = req.cookies.user_id;
+
+  if (urlDatabase[shortUrl].userID === userID) {
+    delete urlDatabase[shortUrl];  
+    res.redirect(`/urls`);
+  } else {
+    res.status(403).send({ error : 'status(403): You do not have permission to delete!'});
+  }
+
+
   //res.send("Ok"); // Respond with 'Ok' (we will replace this)
-  res.redirect(`/urls`);
+  // res.redirect(`/urls`);
 });
 
 
 //redirect link to longURL
 app.get("/u/:shortURL", (req, res) => {
   // const longURL = ...
-  longURL = urlDatabase[req.body]
+
+  let shortUrl = req.params.shortURL;
+  let shortUrlDB = Object.keys(urlDatabase);
+
+  if (!shortUrlDB.includes(shortUrl)) {
+    res.status(403).send({ error : 'status(403): shortUrl does not exist!'});
+  }
+
+   const longURL = urlDatabase[shortUrl].longURL;
+  //longURL = urlDatabase[req.body]
   res.redirect(longURL);
 });
 
@@ -132,8 +244,6 @@ app.get("/login", (req, res) => {
   const id = req.cookies.user_id;
   const user = users[id];
   const templateVars = {user}; 
-
- 
 
  res.render("login", templateVars);
 
@@ -148,11 +258,11 @@ app.post("/login", (req, res) => {
   
  
   if (!emailValidator(email)) {
-    res.status(403).send({ error : 'status(403): The email does not exist. Click Register!'});
+    res.status(403).send({ error : 'status(403): Not Registered yet!. Click Register!'});
   }
  
   if (users[user].password !== req.body.password) {
-    res.status(403).send({ error : 'status(403): The password does not exist. Click Register!'});
+    res.status(403).send({ error : 'status(403): Not Registered yet!. Click Register!'});
   }
   res.cookie('user_id', id); 
   res.redirect("/urls");
