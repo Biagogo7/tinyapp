@@ -2,7 +2,8 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
 
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 6);
@@ -14,11 +15,11 @@ app.use(cookieParser())
 app.set("view engine", "ejs");
 
 let id = generateRandomString();
-const shortUrl = generateRandomString();
+//const shortUrl = generateRandomString();
 
 
 
-// const urlDatabase = {                            xx
+// const urlDatabase = {                            
 //   "b2xVn2": "http://www.lighthouselabs.ca",
 //   "9sm5xK": "http://www.google.com"
 // };
@@ -160,7 +161,7 @@ app.post("/urls", (req, res) => {
   //urlDatabase[shortUrl] = req.body.longURL;    xx
 
   //urls display no url unless user logs in
-  if (!id) {
+  if (!userID) {
     res.status(403).send({ error : 'status(403): You need to Log in or Register!'});
   };
 
@@ -254,15 +255,27 @@ app.post("/login", (req, res) => {
 
   const email = req.body.email;
   const password = req.body.password;
+
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  bcrypt.compareSync(password, hashedPassword);
   let user = id;
-  
+
+  // if (users[shortUrl].userID === "u1" === "u1" || users[shortUrl].userID === "u2") {
+  //   password = users[shortUrl].password;
+  //   hashedPassword = bcrypt.hashSync(password, 10);
+  //   bcrypt.compareSync(password, hashedPassword);
+  // };
  
   if (!emailValidator(email)) {
     res.status(403).send({ error : 'status(403): Not Registered yet!. Click Register!'});
   }
+
+  if (!bcrypt.compareSync(password, hashedPassword)) {
+    res.status(403).send({ error : 'status(403): ***Invalid Credentials!.*** Try again!'});
+  }
  
   if (users[user].password !== req.body.password) {
-    res.status(403).send({ error : 'status(403): Not Registered yet!. Click Register!'});
+    res.status(403).send({ error : 'status(403): Invalid Credentials!. Try again!'});
   }
   res.cookie('user_id', id); 
   res.redirect("/urls");
@@ -279,7 +292,11 @@ app.post("/login", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   //let id = generateRandomString();  
+
+  console.log('PASSWORD =====', password);
+  console.log('PASSWORD HASHED=====', hashedPassword);
 
   if (!email || !password) {
     res.status(400).send({ error : 'status(400): The email or password field cannot be empty!'})
